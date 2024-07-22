@@ -7,23 +7,19 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-
 python = ">=3.10,<3.12"
 tifffile = "^2024.5.22"
 numpy = ">=1.22,<1.24"
 termcolor = "^2.4.0"
 pytest = "^8.2.2"
 setuptools = "^70.2.0"
-tensorflow = "2.15.0"
-tensorflow-macos = "2.15.0"
 n2v = "^0.3.3"
 bioimageio-core = "0.4.9"
 marshmallow = "^3.21.3"
-napari = "^0.5.0"
-pyqt5 = "^5.15.11"
 
-# macOS specific dependencies
+# Platform-specific TensorFlow
 tensorflow-macos = { version = "2.15.0", markers = "sys_platform == 'darwin'" }
+tensorflow = { version = "2.15.0", markers = "sys_platform != 'darwin'" }
 
 [build-system]
 requires = ["poetry-core"]
