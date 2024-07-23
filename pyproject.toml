@@ -14,8 +14,6 @@ termcolor = "^2.4.0"
 pytest = "^8.2.2"
 setuptools = "^70.2.0"
 n2v = "^0.3.3"
-bioimageio-core = "0.4.9"
-marshmallow = "^3.21.3"
 
 # Platform-specific TensorFlow
 tensorflow-macos = { version = "2.15.0", markers = "sys_platform == 'darwin'" }
