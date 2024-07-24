@@ -1,0 +1,10 @@
+.scripts
+# pytest
+.cache/
+*.pytest_cache/
+*.pytest_cache/*
+*__pycache__
+
+#test outputs
+tests/e2e/outputs/*
+./scripts*

@@ -1,6 +1,6 @@
 # MorphoSnaker
 
-MorphoSnaker is a comprehensive Python package for image processing, denoising, and segmentation, primarily designed for microscopy and biological imaging applications.
+MorphoSnaker is a Python package for image processing, denoising, and segmentation, primarily designed for microscopy and biological imaging applications.
 
 ## Features
 
@@ -11,11 +11,59 @@ MorphoSnaker is a comprehensive Python package for image processing, denoising, 
 
 ## Installation
 
+### Recommended Method: Using the MorphoSnaker Singularity Image
+
+To ensure a consistent environment and streamline the setup process, we recommend using the MorphoSnaker Singularity image. This image includes all necessary dependencies and configurations for running MorphoSnaker.
+
+#### Building the Singularity Image
+
+1. **Prerequisites**:
+   - Ensure that Singularity is installed on your system. For installation instructions, refer to the [Singularity installation guide](https://sylabs.io/guides/3.5/user-guide/installation.html).
+
+2. **Prepare the Definition File**:
+   - Download the image https://github.com/Tatan47/morphosnaker/image/morphosnaker.def
+
+3. **Build the Image**:
+   - Use the following command to build the Singularity image. Replace `morphosnaker.sif` with the desired name for your image file.
+
+    ```bash
+    singularity build morphosnaker.sif morphosnaker.def
+    ```
+
+#### Running the Singularity Image
+
+1. **Executing Commands**:
+   - To run a Python script or other commands inside the Singularity container, use the following command format:
+
+    ```bash
+    singularity exec morphosnaker.sif python3 /path/to/your/script.py
+    ```
+
+   - Replace `/path/to/your/script.py` with the actual path to your script. This command executes the script within the container environment.
+
+2. **Interactive Shell**:
+   - If you need an interactive shell within the Singularity container, use:
+
+    ```bash
+    singularity shell morphosnaker.sif
+    ```
+
+   - This command drops you into an interactive shell session within the container, where you can manually execute commands and scripts.
+
+#### Additional Notes
+
+- **Data Binding**: To access data or scripts from your host system within the container, use the `--bind` option to bind mount directories:
+
+  ```bash
+  singularity exec --bind /host/path:/container/path morphosnaker.sif python3 /container/path/script.py
+  ```
+
+## Install using pip
 To install MorphoSnaker, use the following command:
 
-```bash
-pip install morphosnaker
-```
+	```bash
+	pip install git+https://github.com/Tatan47/morphosnaker.git
+	```
 
 ## Quick Start
 
