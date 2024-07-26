@@ -1,69 +1,60 @@
-import numpy as np
-import os
-from typing import List, Union, Optional
-from morphosnaker.denoise.methods.noise2void.module import Noise2VoidDenoiseModule
+from .factory import create_config, create_model
+
 
 class DenoiseModule:
-    def __init__(self):
-        self.train_module = None
-        self.predict_module = None
+    def __init__(self, method="n2v", **config_kwargs):
+        self.method = method
+        self.config = create_config(method, **config_kwargs)
+        self.model = create_model(method, self.config)
 
-    @classmethod
-    def config(cls, method: str, mode: str, **kwargs) -> 'DenoiseModule':
-        instance = cls()
-        if method == 'n2v':
-            if mode == 'train':
-                instance.train_module = Noise2VoidDenoiseModule.config('train', **kwargs)
-            elif mode == 'predict':
-                instance.predict_module = Noise2VoidDenoiseModule.config('predict', **kwargs)
-            else:
-                raise ValueError(f"Unknown mode: {mode}. Must be 'train' or 'predict'")
+    def configurate(self, **config_kwargs):
+        new_method = config_kwargs.pop("method", self.method)
+
+        if new_method != self.method:
+            # Create a new config with default values for the new method
+            new_config = create_config(new_method)
+            # Update the new config with any provided kwargs
+            for key, value in config_kwargs.items():
+                if hasattr(new_config, key):
+                    setattr(new_config, key, value)
+                else:
+                    raise ValueError(
+                        f"Invalid config parameter for method"
+                        f"{new_method}: {key}"
+                    )
         else:
-            raise ValueError(f"Unknown denoising method: {method}")
-        return instance
+            # Update existing config
+            new_config = self._update_config(config_kwargs)
 
-    def train_2D(self, images, **kwargs):
-        if self.train_module is None:
-            raise ValueError("Training module not configured. Use .config('n2v', 'train', ...) first.")
-        return self.train_module.train_2D(images, **kwargs)
+        if new_config != self.config:
+            self.config = new_config
+            self.method = new_method
+            self.model = create_model(self.method, self.config)
 
-    def train_3D(self, images, **kwargs):
-        if self.train_module is None:
-            raise ValueError("Training module not configured. Use .config('n2v', 'train', ...) first.")
-        return self.train_module.train_3D(images, **kwargs)
+        return self.config
 
+    def _update_config(self, new_kwargs):
+        updated_dict = self.config.__dict__.copy()
+        for key, value in new_kwargs.items():
+            if hasattr(self.config, key):
+                updated_dict[key] = value
+            else:
+                raise ValueError(
+                    f"Invalid config parameter for method {self.method}: {key}"
+                )
+        return create_config(self.method, **updated_dict)
 
-    def denoise(self, image, **kwargs):
-        if self.predict_module is None:
-            raise ValueError("Prediction module not configured. Use .config('n2v', 'predict', ...) first.")
-        return self.predict_module.denoise(image, **kwargs)
+    def train_2D(self, images):
+        return self.model.train_2D(images)
 
-    def save_model(self, path):
-        if self.train_module is None:
-            raise ValueError("Training module not configured. Cannot save model.")
-        self.train_module.save_model(path)
+    def train_3D(self, images):
+        return self.model.train_3D(images)
+
+    def predict(self, image):
+        return self.model.predict(image)
 
     def load_model(self, path):
-        if self.predict_module is None:
-            raise ValueError("Prediction module not configured. Use .config('n2v', 'predict', ...) first.")
-        self.predict_module.load_model(path)
+        self.model.load(path)
 
-    def get_config(self, mode: str):
-        if mode == 'train':
-            return self.train_module.config if self.train_module else None
-        elif mode == 'predict':
-            return self.predict_module.config if self.predict_module else None
-        else:
-            raise ValueError(f"Unknown mode: {mode}. Must be 'train' or 'predict'")
-
-    def set_config(self, config, mode: str):
-        if mode == 'train':
-            if self.train_module is None:
-                raise ValueError("Training module not configured. Use .config('n2v', 'train', ...) first.")
-            self.train_module.configure(config)
-        elif mode == 'predict':
-            if self.predict_module is None:
-                raise ValueError("Prediction module not configured. Use .config('n2v', 'predict', ...) first.")
-            self.predict_module.configure(config)
-        else:
-            raise ValueError(f"Unknown mode: {mode}. Must be 'train' or 'predict'")
+    def get_config(self):
+        return self.config
