@@ -192,8 +192,9 @@ class Noise2VoidModel:
         x_unit="",
         y_unit="",
     ):
-        print(f"patch size is {image1.shape}")
+        print(f"Image 1 shape: {image1.shape}, Image 2 shape: {image2.shape}")
         os.makedirs(self.config.fig_dir, exist_ok=True)
+
         # Determine if we're dealing with 2D or 3D images
         if image1.ndim == 3:  # 2D image
             z1, z2 = image1[..., 0], image2[..., 0]
@@ -202,89 +203,111 @@ class Noise2VoidModel:
             z1, z2 = image1[0, mid_z, ..., 0], image2[0, mid_z, ..., 0]
         else:
             raise ValueError("Unsupported image dimensions")
-        # Create subplots with correct aspect ratio
+
+        # Create subplots
         fig = make_subplots(
             rows=1,
             cols=2,
             subplot_titles=(title1, title2),
-            column_widths=[0.5, 0.5],
-            specs=[[{"type": "heatmap"}, {"type": "heatmap"}]],
+            shared_yaxes=True,
+            horizontal_spacing=0.05,
         )
-        fig.add_trace(
-            go.Heatmap(z=z1, colorscale="Magma", showscale=False), row=1, col=1
-        )
-        fig.add_trace(
-            go.Heatmap(z=z2, colorscale="Magma", showscale=False), row=1, col=2
-        )
+
+        # Add heatmaps
+        for i, (z, title) in enumerate([(z1, title1), (z2, title2)], 1):
+            fig.add_trace(
+                go.Heatmap(
+                    z=z,
+                    colorscale="Magma",
+                    showscale=i
+                    == 2,  # Only show colorbar for the second image
+                    colorbar=dict(title="Intensity", x=1.05, y=0.5),
+                    hoverinfo="none",
+                ),
+                row=1,
+                col=i,
+            )
+
+            # Update axes
+        for i in [1, 2]:
+            fig.update_xaxes(
+                title_text=f"X ({x_unit})" if x_unit else "X",
+                showgrid=False,
+                zeroline=False,
+                range=[0, max(z1.shape[1], z2.shape[1])],
+                row=1,
+                col=i,
+            )
+            fig.update_yaxes(
+                title_text=f"Y ({y_unit})" if y_unit and i == 1 else "",
+                showgrid=False,
+                zeroline=False,
+                range=[max(z1.shape[0], z2.shape[0]), 0],  # Reverse y-axis
+                row=1,
+                col=i,
+                scaleanchor="x" if i == 1 else "x",
+                scaleratio=1,
+            )
+
+        # Explicitly link the second subplot to the first
+        fig.update_xaxes(scaleanchor="x", scaleratio=1, row=1, col=2)
+        fig.update_yaxes(scaleanchor="y", scaleratio=1, row=1, col=2)
         # Wrap metadata text
         wrapped_metadata = self.wrap_text(metadata_text, width=100)
-        # Calculate the aspect ratio of the images
-        aspect_ratio = z1.shape[0] / z1.shape[1]
-        # Set the figure size maintaining the aspect ratio
-        width = 1000
-        height = (
-            int(width * aspect_ratio * 0.5) + 300
-        )  # Add extra space for metadata
-        # Update layout with white background for PNGs
+
+        # Update layout
         fig.update_layout(
-            title_text=main_title,
-            width=width,
-            height=height,
-            showlegend=False,
-            margin=dict(t=50, b=200, l=50, r=50),
-            plot_bgcolor="rgba(0,0,0,0)",  # Transparent plot area background
-            paper_bgcolor="white",  # White paper background
+            title=dict(
+                text=main_title,
+                x=0.5,
+                y=0.95,
+                xanchor="center",
+                yanchor="top",
+                font=dict(size=24, color="black", family="Arial, sans-serif"),
+            ),
+            height=700,  # Increased height to accommodate wrapped text
+            width=1200,
+            autosize=False,
+            margin=dict(t=100, b=200, l=100, r=100),  # Increased bottom margin
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="white",
         )
-        # Update axes to maintain aspect ratio and remove background
-        fig.update_xaxes(
-            scaleanchor="y",
-            scaleratio=1,
-            showgrid=False,
-            zeroline=False,
-            showline=False,  # Hide x-axis lines
-        )
-        fig.update_yaxes(
-            scaleanchor="x",
-            scaleratio=1,
-            showgrid=False,
-            zeroline=False,
-            showline=False,  # Hide y-axis lines
-            range=[
-                0,
-                z1.shape[0],
-            ],  # Explicitly set y-axis range to match data
-        )
-        # Add metadata annotation
+
+        # Add metadata annotation with wrapped text
         fig.add_annotation(
             x=0.5,
-            y=-0.2,  # Adjusted y position
+            y=-0.3,  # Adjusted y position
             xref="paper",
             yref="paper",
             text=wrapped_metadata,
             showarrow=False,
             bordercolor="black",
             borderwidth=1,
-            borderpad=10,
+            borderpad=8,
             bgcolor="white",
             opacity=0.8,
             align="left",
             font=dict(family="monospace", size=10),
         )
-        # Update axis labels with units
-        fig.update_xaxes(title_text=f"X ({x_unit})" if x_unit else "X")
-        fig.update_yaxes(title_text=f"Y ({y_unit})" if y_unit else "Y")
+
         # Save the figure as PNG and SVG
         for ext in ["png", "svg"]:
             filename = os.path.join(
                 self.config.fig_dir, f"{filename_base}.{ext}"
             )
-            fig.write_image(filename)
+            fig.write_image(
+                filename, scale=2
+            )  # Increased scale for better resolution
             print(
                 colored(
                     f"Comparison plot saved as {ext.upper()} to {filename}",
                     "green",
                 )
             )
+
+        return (
+            fig  # Return the figure object for further manipulation if needed
+        )
 
     def _plot_and_save_history(self, history, common_metadata):
 
@@ -417,59 +440,6 @@ class Noise2VoidModel:
             x_unit="pixels",
             y_unit="pixels",
         )
-
-        # # Optionally, calculate and plot the difference
-        # difference = prediction_slice - input_slice
-
-        # fig = make_subplots(
-        #     rows=1,
-        #     cols=3,
-        #     subplot_titles=("Input", "Prediction", "Difference"),
-        #     specs=[
-        #         [{"type": "heatmap"}, {"type": "heatmap"}, {"type": "heatmap"}]
-        #     ],
-        # )
-
-        # fig.add_trace(
-        #     go.Heatmap(z=input_slice, colorscale="Viridis", showscale=False),
-        #     row=1,
-        #     col=1,
-        # )
-        # fig.add_trace(
-        #     go.Heatmap(
-        #         z=prediction_slice, colorscale="Viridis", showscale=False
-        #     ),
-        #     row=1,
-        #     col=2,
-        # )
-        # fig.add_trace(
-        #     go.Heatmap(z=difference, colorscale="RdBu", showscale=True),
-        #     row=1,
-        #     col=3,
-        # )
-
-        # fig.update_layout(
-        #     title="Denoising Process Visualization",
-        #     height=400,
-        #     width=1200,
-        #     margin=dict(t=50, b=50, l=50, r=50),
-        # )
-
-        # # Save the figure
-        # for ext in ["png", "svg"]:
-        #     filename = os.path.join(
-        #         self.config.fig_dir,
-        #         f"{self.config.trained_model_name}_denoising_process.{ext}",
-        #     )
-        #     fig.write_image(filename)
-        #     print(
-        #         colored(
-        #             f"Denoising process visualization saved as {ext.upper()} to {filename}",
-        #             "green",
-        #         )
-        #     )
-
-    # logic to save the middle stack of the images and prediction to see the difference in 2D
 
     def _save_prediction(self, image, prediction):
         os.makedirs(self.config.result_dir, exist_ok=True)
