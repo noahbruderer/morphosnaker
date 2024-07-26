@@ -44,12 +44,12 @@ class Noise2VoidModel:
         patch_shape = self.config.n2v_patch_shape
         if self.config.denoising_mode == "2D" and len(patch_shape) != 2:
             raise ValueError(
-                "For 2D denoising, n2v_patch_shape must be 2D."
+                "For 2D denoising, n2v_patch_shape must be 2D. "
                 f"Got: {patch_shape}"
             )
         elif self.config.denoising_mode == "3D" and len(patch_shape) != 3:
             raise ValueError(
-                "For 3D denoising, n2v_patch_shape must be 3D."
+                "For 3D denoising, n2v_patch_shape must be 3D. "
                 f"Got: {patch_shape}"
             )
 
@@ -83,6 +83,13 @@ class Noise2VoidModel:
         non_zero_patch_validation = self._select_non_zero_patch(
             validation_patches
         )
+        return history, non_zero_patch_training, non_zero_patch_validation
+
+    def train_2D(self, images):
+        self.config.denoising_mode = "2D"
+        history, non_zero_patch_training, non_zero_patch_validation = (
+            self.train(images)
+        )
         self._save_training_processes(
             history,
             non_zero_patch_training,
@@ -90,19 +97,28 @@ class Noise2VoidModel:
         )
         return history
 
-    def train_2D(self, images):
-        self.config.denoising_mode = "2D"
-        return self.train(images)
-
     def train_3D(self, images):
         self.config.denoising_mode = "3D"
-        return self.train(images)
+        # patch dimensions are handled here, so we can plot them in 2D
+        history, non_zero_patch_training, non_zero_patch_validation = (
+            self.train(images)
+        )
+        z_mid = non_zero_patch_training.shape[0] // 2
+        non_zero_patch_training = non_zero_patch_training[z_mid, ...]
+        non_zero_patch_validation = non_zero_patch_validation[z_mid, ...]
+
+        self._save_training_processes(
+            history,
+            non_zero_patch_training,
+            non_zero_patch_validation,
+        )
+        return history
 
     def predict(self, images):
         if self._noise2void is None:
             raise ValueError(
-                "Model not trained or loaded. Please train or load"
-                "a model first."
+                "Model not trained or loaded. "
+                "Please train or loada model first."
             )
         axes = "TYXC" if self.config.denoising_mode == "2D" else "TZYXC"
         prediction = self._noise2void.predict(images, axes=axes)
@@ -137,12 +153,12 @@ class Noise2VoidModel:
         patch_shape = self.config.n2v_patch_shape
         if self.config.denoising_mode == "2D" and len(patch_shape) != 2:
             raise ValueError(
-                f"For 2D denoising, n2v_patch_shape must be 2D."
+                "For 2D denoising, n2v_patch_shape must be 2D."
                 f"Got: {patch_shape}"
             )
         elif self.config.denoising_mode == "3D" and len(patch_shape) != 3:
             raise ValueError(
-                f"For 3D denoising, n2v_patch_shape must be 3D."
+                "For 3D denoising, n2v_patch_shape must be 3D."
                 f"Got: {patch_shape}"
             )
 
@@ -418,7 +434,8 @@ class Noise2VoidModel:
             raise ValueError("Unsupported image dimensions")
         # Determine the middle slice for 3D images
         print(
-            f" the shape of input slice is: {input_slice.shape} and the shape of prediction slice is: {prediction_slice.shape}"
+            f" the shape of input slice is: {input_slice.shape} and"
+            f"the shape of prediction slice is: {prediction_slice.shape}"
         )
         # Create metadata
         metadata_text = (
