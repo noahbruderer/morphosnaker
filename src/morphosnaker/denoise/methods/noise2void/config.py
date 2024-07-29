@@ -89,8 +89,7 @@ class Noise2VoidConfig(DenoiseConfigBase):
         """Validate the n2v_perc_pix parameter."""
         if not (0 <= self.n2v_perc_pix <= 1):
             raise ValueError(
-                "n2v_perc_pix must be between 0 and 1,got:"
-                f"{self.n2v_perc_pix}"
+                f"n2v_perc_pix must be between 0 and 1,got:{self.n2v_perc_pix}"
             )
 
     def _validate_n2v_patch_shape(self) -> None:
@@ -101,8 +100,7 @@ class Noise2VoidConfig(DenoiseConfigBase):
         a 3-tuple) see commented code below"""
         if self.denoising_mode == "2D" and len(self.n2v_patch_shape) != 2:
             raise ValueError(
-                "For 2D, n2v_patch_shape must be a 2-tuple,got: "
-                f"{self.n2v_patch_shape}"
+                f"For 2D, n2v_patch_shape must be a 2-tuple,got: {self.n2v_patch_shape}"
             )
         # if self.denoising_mode == "2D" and len(self.n2v_patch_shape) != 2:
         #     raise ValueError(
