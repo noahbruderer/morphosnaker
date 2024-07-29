@@ -103,9 +103,7 @@ class ImageProcessor:
         """
         print(f"Loading source: {source!r}")
         try:
-            return self.image_processor.load(
-                source, input_dims, number_of_files
-            )
+            return self.image_processor.load(source, input_dims, number_of_files)
         except Exception as e:
             print(f"Error loading images: {str(e)}")
             raise
