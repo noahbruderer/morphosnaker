@@ -1,6 +1,8 @@
 .scripts
 .waste
 .mypy_cache
+*.*whl
+*.tar.gz
 # Ignore compiled Python files
 *.pyc
 *.pyo
