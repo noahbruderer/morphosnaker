@@ -39,7 +39,7 @@ def create_model(method: str, config: Noise2VoidConfig) -> Noise2VoidModule:
         method.
 
     Returns:
-        DenoiseMethodModuleBase: An instance of the appropriate denoising
+        Noise2VoidModule: An instance of the appropriate denoising
         model.
 
     Raises:

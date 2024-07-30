@@ -644,8 +644,9 @@ class ImageProcessorMethod(ImageProcessorBase):
             raise ValueError("Output dimensions must be a subset of input dimensions")
 
         # Create a slicer that keeps only the dimensions we want
-        slicer = tuple(slice(None) if dim in output_dims else 0 for dim in input_dims)
-
+        slicer: tuple[Union[int, slice], ...] = tuple(
+            slice(None) if dim in output_dims else 0 for dim in input_dims
+        )
         # Apply the slicer
         result = image[slicer]
 

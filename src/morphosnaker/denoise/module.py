@@ -20,7 +20,7 @@ class DenoiseModule:
         config (Noise2VoidConfig): The configuration object for the denoising,
         for now only Noise2VoidConfig, must be extended as new methods are
         added.
-        model (DenoiseMethodModuleBase): The denoising model instance.
+        model (Noise2VoidModule): The denoising model instance.
     """
 
     def __init__(self, method: str = "n2v", **config_kwargs: Any) -> None:
