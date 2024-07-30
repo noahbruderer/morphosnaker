@@ -110,11 +110,11 @@ class ImageProcessor:
 
     def select_dimensions(
         self,
-        image: np.ndarray,
+        image: np.ndarray | List[np.ndarray],
         channels: Optional[Union[int, List[int]]] = None,
         time_points: Optional[Union[int, List[int]]] = None,
         z_slices: Optional[Union[int, List[int]]] = None,
-    ) -> np.ndarray:
+    ) -> np.ndarray | List[np.ndarray]:
         """
         Select specific channels and time points from the image while
         maintaining dimensionality.
@@ -145,9 +145,9 @@ class ImageProcessor:
 
     def format(
         self,
-        image: np.ndarray,
+        image: Union[np.ndarray, List[np.ndarray]],
         output_dims: str = "TCZYX",
-    ) -> Union[np.ndarray, list[np.ndarray]]:
+    ) -> Union[np.ndarray, List[np.ndarray]]:
         """
         Reformat the dimensions of an image array.
 

@@ -119,22 +119,22 @@ class ImageProcessorMethod(ImageProcessorBase):
 
     def format_images(
         self,
-        image: Union[np.ndarray, list[np.ndarray]],
-        output_dim: str,
-    ) -> Union[np.ndarray, list[np.ndarray]]:
+        image: Union[np.ndarray, List[np.ndarray]],
+        output_dims: str,
+    ) -> Union[np.ndarray, List[np.ndarray]]:
 
-        if isinstance(image, list):
-            return [self._format_image_dimensions(img, output_dim) for img in image]
+        if isinstance(image, List):
+            return [self._format_image_dimensions(img, output_dims) for img in image]
         else:
-            return self._format_image_dimensions(image, output_dims=output_dim)
+            return self._format_image_dimensions(image, output_dims=output_dims)
 
     def select_dimensions(
         self,
-        image: np.ndarray,
+        image: np.ndarray | List[np.ndarray],
         channels: Optional[Union[int, List[int]]] = None,
         time_points: Optional[Union[int, List[int]]] = None,
         z_slices: Optional[Union[int, List[int]]] = None,
-    ) -> np.ndarray:
+    ) -> np.ndarray | List[np.ndarray]:
         """
         Select specific channels, time points, and Z slices from the image
         while maintaining dimensionality.
@@ -155,6 +155,23 @@ class ImageProcessorMethod(ImageProcessorBase):
         ValueError: If the input image doesn't have the expected number of
         dimensions.
         """
+        if isinstance(image, list):
+            return [
+                self._select_dimensions_single(img, channels, time_points, z_slices)
+                for img in image
+            ]
+        else:
+            return self._select_dimensions_single(
+                image, channels, time_points, z_slices
+            )
+
+    def _select_dimensions_single(
+        self,
+        image: np.ndarray,
+        channels: int | List[int] | None = None,
+        time_points: int | List[int] | None = None,
+        z_slices: int | List[int] | None = None,
+    ) -> np.ndarray:
         if image.ndim not in [5]:
             raise ValueError(
                 "Input image must have 5 (T, C, Z, Y, X), dimensions. Load it "
@@ -266,7 +283,7 @@ class ImageProcessorMethod(ImageProcessorBase):
                     slices[axis] = slice(spec[0], spec[1])
                 else:
                     raise ValueError(
-                        f"Invalid crop specification for dimension '{{dim}}': {spec}"
+                        f"Invalid crop specification for dimension '{dim}': {spec}"
                     )
 
         # Convert slices list to a tuple for indexing
@@ -617,8 +634,9 @@ class ImageProcessorMethod(ImageProcessorBase):
 
         print(colored(f"\nInspected {len(results)} file(s).", "green"))
 
-    def _format_image_dimensions(self, image, output_dims: str = "TCZYX"):
-
+    def _format_image_dimensions(
+        self, image: np.ndarray, output_dims: str = "TCZYX"
+    ) -> np.ndarray:
         input_dims = "TCZYX"
         output_dims = output_dims.upper()
 
