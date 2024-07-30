@@ -1,5 +1,6 @@
 from typing import Any
 
+from ...mixin import _format_input_batch, _validate_input
 from .config import Noise2VoidConfig
 from .model import Noise2VoidModel
 
@@ -24,10 +25,13 @@ class Noise2VoidModule:
             config: Configuration for the Noise2Void model.
                 If not provided, a default configuration will be used.
         """
+        super().__init__()
         self.config = config if config else Noise2VoidConfig()
         self.model = Noise2VoidModel(self.config)
+        self._format_input_batch = _format_input_batch
+        self._validate_input = _validate_input
 
-    def train_2D(self, images: Any) -> Any:
+    def train_2D(self, images: Any, **kwargs: Any) -> Any:
         """
         Train the Noise2Void model on 2D images.
 
@@ -37,9 +41,12 @@ class Noise2VoidModule:
         Returns:
             The result of the training process.
         """
-        return self.model.train_2D(images)
+        formatted_images = self._format_input_batch(images, output_dims="TXYC")
+        print(formatted_images[0].shape)
 
-    def train_3D(self, images: Any) -> Any:
+        return self.model.train_2D(formatted_images)
+
+    def train_3D(self, images: Any, **kwargs: Any) -> Any:
         """
         Train the Noise2Void model on 3D images.
 
@@ -49,10 +56,13 @@ class Noise2VoidModule:
         Returns:
             The result of the training process.
         """
-        return self.model.train_3D(images)
+        formatted_images = self._format_input_batch(images, output_dims="TZXYC")
+        print(formatted_images[0].shape)
+        return self.model.train_3D(formatted_images)
 
-    def predict(self, image: Any) -> Any:
+    def predict(self, image: Any, **kwargs: Any) -> Any:
         """
+        TODO UNIFY OUTPUT DIMS
         Apply the trained Noise2Void model to denoise an image.
 
         Args:
@@ -61,7 +71,13 @@ class Noise2VoidModule:
         Returns:
             The denoised image.
         """
-        return self.model.predict(image)
+        if self.config.denoising_mode == "2D":
+            formatted_images = self._format_input_batch(image, output_dims="TXYC")
+        elif self.config.denoising_mode == "3D":
+            formatted_images = self._format_input_batch(image, output_dims="TZXYC")
+        print(formatted_images[0].shape)
+
+        return self.model.predict(formatted_images)
 
     def load(self, path: str) -> None:
         """
