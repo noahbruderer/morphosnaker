@@ -1,4 +1,5 @@
 .scripts
+.waste
 .mypy_cache
 # Ignore compiled Python files
 *.pyc
