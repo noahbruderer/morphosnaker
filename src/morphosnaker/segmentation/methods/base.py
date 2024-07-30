@@ -25,7 +25,7 @@ class SegmentationConfigBase:
     def _validate_segmentation_mode(self):
         if self.segmentation_mode not in ["2D", "3D"]:
             raise ValueError(
-                f"segmentation_mode must be either '2D' or '3D', got:"
+                "segmentation_mode must be either '2D' or '3D', got:"
                 f"{self.segmentation_mode}"
             )
 
