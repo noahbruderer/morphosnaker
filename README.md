@@ -57,7 +57,7 @@ To ensure a consistent environment and streamline the setup process, we recommen
 - **Data Binding**: To access data or scripts from your host system within the container, use the `--bind` option to bind mount directories:
 
   ```bash
-  singularity exec --bind /host/path:/container/path morphosnaker.sif python3 /container/path/script.py
+
   ```
 
 ## Install using pip
