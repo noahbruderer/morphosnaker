@@ -102,14 +102,16 @@ class Noise2VoidModel:
         )
         return history
 
-    def predict(self, images):
+    def predict(self, image):
         if self._noise2void is None:
             raise ValueError(
                 "Model not trained or loaded. Please train or loada model first."
             )
         axes = "TYXC" if self.config.denoising_mode == "2D" else "TZYXC"
-        prediction = self._noise2void.predict(images, axes=axes)
-        self._save_prediction(images, prediction)
+        prediction = self._noise2void.predict(image, axes=axes)
+        # format prediction here depending on the axes
+
+        self._save_prediction(image, prediction)
         return prediction
 
     def load(self, path):
@@ -426,20 +428,22 @@ class Noise2VoidModel:
             y_unit="pixels",
         )
 
-    def _save_prediction(self, image, prediction):
-        os.makedirs(self.config.result_dir, exist_ok=True)
-
-        # self._plot_and_save_prediction_process(image, prediction)
-        print("shape of image is ", image.shape)
-        print("shape of prediction is ", prediction.shape)
-        self._plot_and_save_prediction_process(
-            image,
-            prediction,
-        )
-
+    def _save_predicted_image(self, prediction):
         filename = os.path.join(
             self.config.result_dir,
             f"{self.config.trained_model_name}_prediction.tif",
         )
         tifffile.imsave(filename, prediction)
         print(colored(f"Prediction saved as TIFF to {filename}", "green"))
+
+    def _save_prediction(self, image, prediction):
+        os.makedirs(self.config.result_dir, exist_ok=True)
+
+        # self._plot_and_save_prediction_process(image, prediction)
+        print(f"shape of image is {image.shape}")
+        print("shape of prediction is {prediction.shape}")
+        self._plot_and_save_prediction_process(
+            image,
+            prediction,
+        )
+        self._save_predicted_image(prediction)

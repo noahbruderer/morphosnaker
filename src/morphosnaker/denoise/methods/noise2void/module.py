@@ -1,6 +1,7 @@
 from typing import Any
 
-from ...mixin import _format_input_batch, _validate_input
+from morphosnaker.utils import ImageProcessor
+
 from .config import Noise2VoidConfig
 from .model import Noise2VoidModel
 
@@ -28,8 +29,7 @@ class Noise2VoidModule:
         super().__init__()
         self.config = config if config else Noise2VoidConfig()
         self.model = Noise2VoidModel(self.config)
-        self._format_input_batch = _format_input_batch
-        self._validate_input = _validate_input
+        self.image_processor = ImageProcessor()
 
     def train_2D(self, images: Any, **kwargs: Any) -> Any:
         """
@@ -41,7 +41,7 @@ class Noise2VoidModule:
         Returns:
             The result of the training process.
         """
-        formatted_images = self._format_input_batch(images, output_dims="TXYC")
+        formatted_images = self.image_processor.format(images, output_dims="TXYC")
         print(formatted_images[0].shape)
 
         return self.model.train_2D(formatted_images)
@@ -56,7 +56,7 @@ class Noise2VoidModule:
         Returns:
             The result of the training process.
         """
-        formatted_images = self._format_input_batch(images, output_dims="TZXYC")
+        formatted_images = self.image_processor.format(images, output_dims="TZXYC")
         print(formatted_images[0].shape)
         return self.model.train_3D(formatted_images)
 
@@ -72,9 +72,9 @@ class Noise2VoidModule:
             The denoised image.
         """
         if self.config.denoising_mode == "2D":
-            formatted_images = self._format_input_batch(image, output_dims="TXYC")
+            formatted_images = self.image_processor.format(image, output_dims="TXYC")
         elif self.config.denoising_mode == "3D":
-            formatted_images = self._format_input_batch(image, output_dims="TZXYC")
+            formatted_images = self.image_processor.format(image, output_dims="TZXYC")
         print(formatted_images[0].shape)
 
         return self.model.predict(formatted_images)
