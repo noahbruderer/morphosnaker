@@ -334,43 +334,16 @@ class ImageProcessorMethod(ImageProcessorBase):
             image = self._load_file(file_path)
             if input_dims == "auto":
                 input_dims = self._guess_dimensions(image)
-            return self._process_image(image, input_dims, output_dims)
+            return self.standardise_dimensions(image, input_dims, output_dims)
         except Exception as e:
             print(colored(f"Error processing file {file_path}: {str(e)}", "red"))
             raise
 
-    def _process_image(
-        self, image: np.ndarray, input_dims: str, output_dims: str
-    ) -> np.ndarray:
-        """
-        Process a loaded image: select channels, standardize dimensions, and
-        normalize.
-
-        Args:
-            image (np.ndarray): Input image.
-            input_dims (str): The dimension order of the input image.
-
-        Returns:
-            np.ndarray: Processed image.
-
-        Raises:
-            ValueError: If channels cannot be selected from the image.
-            Exception: If an error occurs during image processing.
-        """
-        try:
-            image = self._standardize_dimensions(
-                image, input_dims, output_dims=output_dims
-            )
-            return image
-        except Exception as e:
-            print(colored(f"Error processing image: {str(e)}", "red"))
-            raise
-
-    def _standardize_dimensions(
+    def standardise_dimensions(
         self, image: np.ndarray, input_dims: str, output_dims: str = "TCZYX"
     ) -> np.ndarray:
         """
-        Standardize image dimensions to TCZYX.
+        Standardise image dimensions to TCZYX.
 
         Args:
             image (np.ndarray): Input image.
@@ -383,43 +356,52 @@ class ImageProcessorMethod(ImageProcessorBase):
             AssertionError: If the number of dimensions doesn't match the
             specified input_dims.
         """
-        print(colored(f"Input shape: {image.shape}, Input dims: {input_dims}", "blue"))
-
-        assert len(image.shape) == len(
-            input_dims
-        ), "Number of dimensions doesn't match the specified input_dims"
-        # check if z dim is present in input_dims, if not: 2D
-
-        # I - initiation: we order the dimensions in the output_dims order
-        # (regardless if all target dims are present in input_dims or not
-        existing_dims = [dim for dim in output_dims if dim in input_dims]
-        transpose_order = [input_dims.index(dim) for dim in existing_dims]
-        image = np.transpose(image, transpose_order)
-        reordered_dims = "".join(existing_dims)
-        print(
-            colored(
-                f"After transposing existing dims: shape={image.shape}, dims="
-                f"{reordered_dims}",
-                "yellow",
+        try:
+            if input_dims == "auto":
+                input_dims = self._guess_dimensions(image)
+            print(
+                colored(f"Input shape: {image.shape}, Input dims: {input_dims}", "blue")
             )
-        )
-        # II: - Add missing dimensions to our input image to standardise it
-        # first we map the standard dimensions to their axis
-        dim_to_axis = {dim: i for i, dim in enumerate(output_dims)}
-        for dim in output_dims:
-            if dim not in reordered_dims:
-                axis = dim_to_axis[dim]
-                image = np.expand_dims(image, axis=axis)
-                reordered_dims = reordered_dims[:axis] + dim + reordered_dims[axis:]
-        print(
-            colored(
-                "After adding dimensions: shape={image.shape}, "
-                f"dims={reordered_dims}",
-                "yellow",
-            )
-        )
 
-        return image
+            assert len(image.shape) == len(
+                input_dims
+            ), "Number of dimensions doesn't match the specified input_dims"
+            # check if z dim is present in input_dims, if not: 2D
+
+            # I - initiation: we order the dimensions in the output_dims order
+            # (regardless if all target dims are present in input_dims or not
+            existing_dims = [dim for dim in output_dims if dim in input_dims]
+            transpose_order = [input_dims.index(dim) for dim in existing_dims]
+            image = np.transpose(image, transpose_order)
+            reordered_dims = "".join(existing_dims)
+            print(
+                colored(
+                    f"After transposing existing dims: shape={image.shape}, dims="
+                    f"{reordered_dims}",
+                    "yellow",
+                )
+            )
+            # II: - Add missing dimensions to our input image to standardise it
+            # first we map the standard dimensions to their axis
+            dim_to_axis = {dim: i for i, dim in enumerate(output_dims)}
+            for dim in output_dims:
+                if dim not in reordered_dims:
+                    axis = dim_to_axis[dim]
+                    image = np.expand_dims(image, axis=axis)
+                    reordered_dims = reordered_dims[:axis] + dim + reordered_dims[axis:]
+            print(
+                colored(
+                    f"After adding dimensions: shape={image.shape}, "
+                    f"dims={reordered_dims}",
+                    "yellow",
+                )
+            )
+
+            return image
+
+        except Exception as e:
+            print(colored(f"Error processing image: {str(e)}", "red"))
+            raise
 
     def _guess_dimensions(self, image: np.ndarray) -> str:
         """
