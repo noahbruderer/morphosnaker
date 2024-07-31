@@ -2,30 +2,20 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
+from .methods import PlotMethod
 from .processor import ImageProcessorMethod
 
 
 class ImageProcessor:
     """
     A class for loading and preprocessing images using ImageProcessorMethod.
+    TODO - Add more detailed description of the class and its methods.
     """
 
-    def __init__(
-        self,
-        time_points: Optional[Union[int, List[int]]] = None,
-        channels: Optional[Union[int, List[int]]] = None,
-        z_slices: Optional[Union[int, List[int]]] = None,
-    ):
-        """
-        Initialize the ImageProcessor.
-
-        Args:
-            channels (Optional[Union[int, List[int]]]): Channels to load.
-            If None, load all channels.
-            time_points (Optional[Union[int, List[int]]]): Time points to load.
-            If None, load all time points.
-        """
+    def __init__(self) -> None:
+        """Initialize the ImageProcessor."""
         self.image_processor = ImageProcessorMethod()
+        self.plot = PlotMethod()
 
     def inspect(self, source: Union[str, List[str]], max_files: int = 5):
         """
@@ -82,7 +72,7 @@ class ImageProcessor:
         number_of_files: Optional[int] = None,
     ) -> Union[np.ndarray, List[np.ndarray]]:
         """
-        Load images without any preprocessing or modifications.
+        Load images and retruns standard image format TCZYX.
 
         Args:
             source (Union[str, List[str]]): Path to a file, list of file paths,
@@ -107,6 +97,25 @@ class ImageProcessor:
         except Exception as e:
             print(f"Error loading images: {str(e)}")
             raise
+
+    def standardise_image(
+        self, image: np.ndarray, input_dims: str = "auto"
+    ) -> np.ndarray:
+        """
+        Standardise the image by converting it to float32 and normalising it.
+
+        Args:
+            image (np.ndarray): Input image.
+
+        Returns:
+            np.ndarray: Standardised image.
+
+        Example:
+            >>> loader = ImageProcessor()
+            >>> image = loader.load("path/to/image.tif")
+            >>> standardised = loader.standardise_image(image)
+        """
+        return self.image_processor.standardise_dimensions(image, input_dims)
 
     def select_dimensions(
         self,
