@@ -71,13 +71,12 @@ class Noise2VoidModule:
         Returns:
             The denoised image.
         """
+        # format image according to noise2void requirements (TYXC or TZYXC)
         if self.config.denoising_mode == "2D":
-            formatted_images = self.image_processor.format(image, output_dims="TXYC")
+            image = self.image_processor.format(image, output_dims="TYXC")
         elif self.config.denoising_mode == "3D":
-            formatted_images = self.image_processor.format(image, output_dims="TZXYC")
-        print(formatted_images[0].shape)
-
-        return self.model.predict(formatted_images)
+            image = self.image_processor.format(image, output_dims="TZYXC")
+        return self.model.predict(image)
 
     def load(self, path: str) -> None:
         """
