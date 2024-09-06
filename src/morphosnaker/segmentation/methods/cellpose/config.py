@@ -1,7 +1,7 @@
 # src/morphosnaker/segmentation/methods/cellpose/config.py
 
 from dataclasses import dataclass
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 from ..base import SegmentationConfigBase
 
@@ -44,3 +44,12 @@ class CellposeConfig(SegmentationConfigBase):
             raise ValueError(
                 f"channels must be a tuple of two integers, got: {self.channels}"
             )
+
+    def update_from_model(self, model: Any) -> None:
+        """
+        Update configuration based on a loaded Cellpose model.
+
+        :param model: A loaded Cellpose model
+        """
+        if hasattr(model, "diam_mean"):
+            self.diameter = model.diam_mean
