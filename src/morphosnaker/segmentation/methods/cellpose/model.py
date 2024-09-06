@@ -29,7 +29,7 @@ class CellposeModel(SegmentationMethodBase):
 
         assert self.model is not None, "Model should be initialized"
 
-        masks, flows, styles, diams = self.model.eval(
+        result = self.model.eval(
             image,
             channels=self.config.channels,
             diameter=self.config.diameter,
@@ -39,12 +39,24 @@ class CellposeModel(SegmentationMethodBase):
             stitch_threshold=self.config.stitch_threshold,
             do_3D=self.config.do_3D,
         )
+
+        if len(result) == 4:
+            masks, flows, styles, diams = result
+        elif len(result) == 3:
+            masks, flows, styles = result
+            diams = None
+        else:
+            raise ValueError(
+                f"Unexpected number of return values from Cellpose model: {len(result)}"
+            )
+
         return masks
 
     def load_model(self, path: str):
         self.model = cellpose_models.CellposeModel(
             pretrained_model=path, model_type=self.config.model_type  # type: ignore
         )
+        self.config.update_from_model(self.model)
 
 
 # comments:
