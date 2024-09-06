@@ -12,15 +12,40 @@ class DenoiseModule:
     A module for denoising images using various methods.
 
     This class provides a high-level interface for configuring, training,
-    and applying
-    denoising models to images.
+    and applying denoising models to images.
 
     Attributes:
         method (str): The denoising method to use (e.g., "n2v" for Noise2Void).
-        config (Noise2VoidConfig): The configuration object for the denoising,
-        for now only Noise2VoidConfig, must be extended as new methods are
-        added.
+        config (Noise2VoidConfig): The configuration object for the denoising.
         model (Noise2VoidModule): The denoising model instance.
+
+    Methods:
+        __init__(method: str = "n2v", **config_kwargs: Any) -> None:
+            Initialize the DenoiseModule.
+
+        configurate(**config_kwargs: Any) -> Noise2VoidConfig:
+            Reconfigure the denoising module with new parameters.
+
+        train_2D(images: Union[List[np.ndarray], np.ndarray]) -> Any:
+            Train the denoising model on 2D images.
+
+        train_3D(images: Union[List[np.ndarray], np.ndarray]) -> Any:
+            Train the denoising model on 3D images.
+
+        predict(image: np.ndarray) -> Any:
+            Apply the trained denoising model to denoise an image.
+
+        load_model(path: str) -> None:
+            Load a previously trained denoising model from a file.
+
+        get_config() -> Union[Noise2VoidConfig, DenoiseConfigBase]:
+            Get the current configuration of the denoising module.
+
+    Usage:
+        >>> denoiser = DenoiseModule(method="n2v")
+        >>> denoiser.configurate(train_epochs=100, train_steps_per_epoch=100)
+        >>> denoiser.train_2D(train_images)
+        >>> denoised_image = denoiser.predict(test_image)
     """
 
     def __init__(self, method: str = "n2v", **config_kwargs: Any) -> None:
@@ -89,10 +114,11 @@ class DenoiseModule:
         Train the denoising model on 2D images.
 
         Args:
-            images: The input 2D images for training.
+            images (Union[np.ndarray, List[np.ndarray]]): The input 2D images for
+            training.
 
         Returns:
-            The result of the training process.
+            Any: The result of the training process.
         """
         return self.model.train_2D(images)
 
