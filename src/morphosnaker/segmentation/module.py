@@ -49,5 +49,11 @@ class SegmentationModule:
     def load_model(self, path: str) -> None:
         self.model.load_model(path)
 
+    def get_model_info(self):
+        if hasattr(self.model, "get_model_info"):
+            return self.model.get_model_info()
+        else:
+            return {"error": "Model info not available"}
+
     def get_config(self) -> Union[CellposeConfig, SegmentationConfigBase]:
         return self.config

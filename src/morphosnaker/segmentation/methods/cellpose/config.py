@@ -1,7 +1,7 @@
 # src/morphosnaker/segmentation/methods/cellpose/config.py
 
 from dataclasses import dataclass
-from typing import Any, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 from ..base import SegmentationConfigBase
 
@@ -15,9 +15,9 @@ class CellposeConfig(SegmentationConfigBase):
     flow_threshold: float = 0.4
     cellprob_threshold: float = 0.0
     min_size: int = 15
-    stitch_threshold: float = 0.0
-    do_3D: bool = False
+    use_gpu: bool = True
     diameter: float = 30.0
+    pretrained_model: Optional[str] = None
 
     def validate(self):
         super().validate()
@@ -53,3 +53,7 @@ class CellposeConfig(SegmentationConfigBase):
         """
         if hasattr(model, "diam_mean"):
             self.diameter = model.diam_mean
+        if hasattr(model, "pretrained_model"):
+            self.model_type = model.pretrained_model
+        if hasattr(model, "do_3D"):
+            self.do_3D = model.do_3D

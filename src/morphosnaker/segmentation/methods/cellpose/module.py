@@ -17,3 +17,6 @@ class CellposeModule:
 
     def load_model(self, path):
         self.model.load_model(path)
+
+    def get_model_info(self):
+        return self.model.get_model_info()

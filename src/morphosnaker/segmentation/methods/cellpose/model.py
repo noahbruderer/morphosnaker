@@ -1,6 +1,7 @@
 # src/morphosnaker/segmentation/methods/cellpose/model.py
 
 
+import os
 from typing import Optional
 
 import numpy as np
@@ -14,6 +15,39 @@ class CellposeModel(SegmentationMethodBase):
     def __init__(self, config: CellposeConfig):
         self.config = config
         self.model: Optional[cellpose_models.Cellpose] = None
+
+    def load_model(self, path: str):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Model file not found: {path}")
+
+        # Cellpose model loading
+        self.model = cellpose_models.CellposeModel(
+            pretrained_model=path,
+            gpu=self.config.use_gpu,
+        )
+
+        # Update config based on loaded model
+        # Only update attributes that we're sure exist
+        self.config.diameter = getattr(self.model, "diam_mean", self.config.diameter)
+        self.config.pretrained_model = path
+
+        print(f"Cellpose model loaded successfully from: {path}")
+        print(f"Updated config: {self.config}")
+
+    def get_model_info(self):
+        if self.model is None:
+            return {"error": "No Cellpose model loaded"}
+
+        # Use getattr with default values to avoid AttributeError
+        return {
+            "model_name": os.path.basename(self.config.pretrained_model),
+            "model_type": self.config.model_type,
+            "diameter": self.config.diameter,
+            "pretrained_model": self.config.pretrained_model,
+            "device": str(getattr(self.model, "device", "unknown")),
+            "nclasses": getattr(self.model, "nclasses", "unknown"),
+            "nchan": getattr(self.model, "nchan", "unknown"),
+        }
 
     def _ensure_model(self):
         if self.model is None:
@@ -51,12 +85,6 @@ class CellposeModel(SegmentationMethodBase):
             )
 
         return masks
-
-    def load_model(self, path: str):
-        self.model = cellpose_models.CellposeModel(
-            pretrained_model=path, model_type=self.config.model_type  # type: ignore
-        )
-        self.config.update_from_model(self.model)
 
 
 # comments:
