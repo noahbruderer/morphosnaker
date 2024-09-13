@@ -21,7 +21,7 @@ src/**/__pycache__/*
 tests/e2e/outputs/*
 tests/e2e/data/*
 *scripts/*
-
+notebooks/*
 #ignore hidden files
 .DS_Store
 */.DS_Store
