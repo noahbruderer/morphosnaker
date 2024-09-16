@@ -1,49 +1,31 @@
 # src/morphosnaker/segmentation/methods/cellpose/config.py
 
-from dataclasses import dataclass
-from typing import Any, Optional, Tuple, Union
+import os
+from dataclasses import dataclass, field
+from typing import Any, Tuple, Union
 
 from ..base import SegmentationConfigBase
 
 
 @dataclass
 class CellposeConfig(SegmentationConfigBase):
-    method: str = "cellpose"
-    segmentation_mode: str = "2D"
     channels: Union[int, Tuple[int, int]] = (0, 0)
     model_type: str = "cyto3"
+    diameter: float = 30.0
     flow_threshold: float = 0.4
     cellprob_threshold: float = 0.0
-    min_size: int = 15
-    use_gpu: bool = True
-    diameter: float = 30.0
-    pretrained_model: Optional[str] = None
+    do_3D: bool = False
+    pretrained_model: str = field(default="cyto3", init=False)
+    segmentation_mode: str = "2D"
+
+    def __post_init__(self):
+        super().validate()
+        self.validate()
 
     def validate(self):
         super().validate()
-        self._validate_model_type()
-        self._validate_channels()
-
-    def __post_init__(self):
-        # Convert single channel to tuple
-        if isinstance(self.channels, int):
-            self.channels = (self.channels, self.channels)
-
-        # Now call the validation
-        self.validate()
-
-    def _validate_model_type(self):
-        valid_models = ["cyto", "nuclei", "cyto2", "cyto3"]
-        if self.model_type not in valid_models:
-            raise ValueError(
-                f"model_type must be one of {valid_models}, got: {self.model_type}"
-            )
-
-    def _validate_channels(self):
-        if not isinstance(self.channels, tuple) or len(self.channels) != 2:
-            raise ValueError(
-                f"channels must be a tuple of two integers, got: {self.channels}"
-            )
+        if self.model_type not in ["cyto", "nuclei", "cyto2", "cyto3"]:
+            raise ValueError(f"Invalid model_type: {self.model_type}")
 
     def update_from_model(self, model: Any) -> None:
         """
@@ -51,9 +33,19 @@ class CellposeConfig(SegmentationConfigBase):
 
         :param model: A loaded Cellpose model
         """
+        if hasattr(model, "pretrained_model"):
+            self.pretrained_model = model.pretrained_model
         if hasattr(model, "diam_mean"):
             self.diameter = model.diam_mean
-        if hasattr(model, "pretrained_model"):
-            self.model_type = model.pretrained_model
-        if hasattr(model, "do_3D"):
-            self.do_3D = model.do_3D
+        if hasattr(model, "nclasses"):
+            self.model_type = "cyto" if model.nclasses == 4 else "nuclei"
+        if hasattr(model, "diam_labels"):
+            self.diam_labels = model.diam_labels
+
+    def update_model_name(self, path: str) -> None:
+        """
+        Update the trained model name based on the loaded model path.
+
+        :param path: Path to the loaded model
+        """
+        self.trained_model_name = os.path.basename(path)

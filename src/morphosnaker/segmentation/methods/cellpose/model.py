@@ -1,92 +1,59 @@
 # src/morphosnaker/segmentation/methods/cellpose/model.py
-
-
 import os
-from typing import Optional
+from typing import Any, Optional
 
-import numpy as np
-from cellpose import models as cellpose_models
+from cellpose import models
 
-from ..base import SegmentationMethodBase
+from ..base import SegmentationModuleBase
 from .config import CellposeConfig
 
 
-class CellposeModel(SegmentationMethodBase):
+class CellposeModel(SegmentationModuleBase):
     def __init__(self, config: CellposeConfig):
         self.config = config
-        self.model: Optional[cellpose_models.Cellpose] = None
+        self.model = None
+        self._initialize_model()
 
-    def load_model(self, path: str):
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Model file not found: {path}")
+    def _initialize_model(self):
+        """Initialize the model based on the configuration."""
+        if self.config.model_type in ["cyto", "nuclei", "cyto2", "cyto3"]:
+            self.model = models.CellposeModel(model_type=self.config.model_type)
+        else:
+            # For custom model types, we'll expect load_model to be called
+            self.model = None
 
-        # Cellpose model loading
-        self.model = cellpose_models.CellposeModel(
-            pretrained_model=path,
-            gpu=self.config.use_gpu,
-        )
+    def load_model(self, model_path: str) -> None:
+        try:
+            self.model = models.CellposeModel(pretrained_model=model_path)
+            self.config.update_from_model(self.model)
+            model_name = os.path.basename(model_path)
+            model_name = os.path.splitext(model_name)[0]
+            self.config.update_model_name(model_name)
+            print(f"Custom model loaded successfully from {model_path}")
+        except Exception as e:
+            raise ValueError(f"Error loading Cellpose model: {str(e)}")
 
-        # Update config based on loaded model
-        # Only update attributes that we're sure exist
-        self.config.diameter = getattr(self.model, "diam_mean", self.config.diameter)
-        self.config.pretrained_model = path
-
-        print(f"Cellpose model loaded successfully from: {path}")
-        print(f"Updated config: {self.config}")
-
-    def get_model_info(self):
-        if self.model is None:
-            return {"error": "No Cellpose model loaded"}
-
-        # Use getattr with default values to avoid AttributeError
-        return {
-            "model_name": os.path.basename(self.config.pretrained_model),
-            "model_type": self.config.model_type,
-            "diameter": self.config.diameter,
-            "pretrained_model": self.config.pretrained_model,
-            "device": str(getattr(self.model, "device", "unknown")),
-            "nclasses": getattr(self.model, "nclasses", "unknown"),
-            "nchan": getattr(self.model, "nchan", "unknown"),
-        }
-
-    def _ensure_model(self):
-        if self.model is None:
-            self.model = cellpose_models.Cellpose(model_type=self.config.model_type)
-
-    def train(self, images: np.ndarray, masks, **kwargs):
-        # Implement Cellpose training logic here
-        print("Training Cellpose must still be implemented")
-        pass
-
-    def predict(self, image: np.ndarray, **kwargs):
+    def predict(self, image: Any, **kwargs: Any) -> Any:
         self._ensure_model()
-
-        assert self.model is not None, "Model should be initialized"
-
-        result = self.model.eval(
+        assert self.model is not None
+        masks, flows, styles = self.model.eval(
             image,
             channels=self.config.channels,
             diameter=self.config.diameter,
             flow_threshold=self.config.flow_threshold,
             cellprob_threshold=self.config.cellprob_threshold,
-            min_size=self.config.min_size,
-            stitch_threshold=self.config.stitch_threshold,
             do_3D=self.config.do_3D,
         )
-
-        if len(result) == 4:
-            masks, flows, styles, diams = result
-        elif len(result) == 3:
-            masks, flows, styles = result
-            diams = None
-        else:
-            raise ValueError(
-                f"Unexpected number of return values from Cellpose model: {len(result)}"
-            )
-
         return masks
 
+    def _ensure_model(self):
+        if self.model is None:
+            self.model = models.CellposeModel(model_type=self.config.model_type)
+            self.config.update_from_model(self.model)
 
-# comments:
-# the type error in load_model method is due to the fact that the CellposeModel class is
-# not defined in the cellpose.models module.
+    def train(self, images: Any, masks: Optional[Any], **kwargs: Any) -> Any:
+        # Implement Cellpose training logic here
+        raise NotImplementedError("Cellpose training not implemented yet")
+
+    def get_config(self) -> CellposeConfig:
+        return self.config
