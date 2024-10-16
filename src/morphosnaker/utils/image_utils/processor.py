@@ -108,10 +108,12 @@ class ImageProcessorMethod(ImageProcessorBase):
                 self._load_and_process_file(file_path, input_dims, output_dims="TCZYX")
                 for file_path in tqdm(file_list, desc="Loading files")
             ]
-            if images != list:
-                return images[0]
-            else:
+            print(type(images))
+            if len(images) > 1:
+                print("in else so we return list")
                 return images
+            else:
+                return images[0]
 
         except Exception as e:
             print(colored(f"Error during loading: {str(e)}", "red"))
