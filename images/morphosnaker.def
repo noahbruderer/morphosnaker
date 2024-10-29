@@ -31,7 +31,7 @@ From: tensorflow/tensorflow:2.15.0-gpu
         n2v==0.3.3
 
     # Install morphosnaker from GitHub
-    pip3 install git+https://github.com/Tatan47/morphosnaker.git
+    pip3 install git+https://github.com/noahbruderer/morphosnaker.git
 
 %environment
     export LANG=C.UTF-8
