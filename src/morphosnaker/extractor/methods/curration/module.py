@@ -1,92 +1,122 @@
-from typing import Any, List
+from typing import Tuple
 
 import numpy as np
 from scipy import ndimage as ndi
-from skimage.morphology import remove_small_objects
-from skimage.segmentation import clear_border, watershed
+from skimage.measure import label
 
 
 class MaskCurator:
     @staticmethod
-    def remove_small_objects(
-        mask: np.ndarray, min_size: int = 64, connectivity: int = 1
-    ) -> np.ndarray:
+    def fuse_small_objects(mask: np.ndarray, max_artifact_size: int) -> np.ndarray:
         """
-        Remove small objects from the mask.
+        Identify small unsegmented objects and fuse them with the nearest neighbor.
+
+        Args:
+            mask (np.ndarray): Input segmentation mask.
+            max_artifact_size (int): Maximum size of objects to be considered artifacts.
+
+        Returns:
+            np.ndarray: Updated mask with small objects fused.
         """
-        return remove_small_objects(mask, min_size=min_size, connectivity=connectivity)
+        # Ensure mask is 2D
+        if mask.ndim != 2:
+            raise ValueError(f"Expected 2D mask, got shape {mask.shape}")
+
+        # Identify small objects
+        small_objects = label(np.logical_not(mask))
+        sizes = np.bincount(small_objects.flatten())
+        small_labels = np.where(sizes <= max_artifact_size)[0]
+        small_labels = small_labels[small_labels != 0]  # Exclude background
+
+        # Dilate small objects to find neighbors
+        dilated = ndi.binary_dilation(np.isin(small_objects, small_labels))
+        neighbor_labels = mask[dilated]
+
+        # Assign each small object to a random neighbor
+        for obj_label in small_labels:
+            obj_mask = small_objects == obj_label
+            obj_neighbors = neighbor_labels[obj_mask]
+            valid_neighbors = obj_neighbors[obj_neighbors > 0]
+            if len(valid_neighbors) > 0:
+                new_label = np.random.choice(valid_neighbors)
+                mask[obj_mask] = new_label
+
+        return mask
 
     @staticmethod
-    def fill_holes(mask: np.ndarray) -> np.ndarray:
+    def label_large_holes(
+        mask: np.ndarray, min_hole_size: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Fill holes in the mask.
-        """
-        return ndi.binary_fill_holes(mask)
+        Identify large unsegmented holes and label them as new cells.
 
-    @staticmethod
-    def clear_border(mask: np.ndarray, buffer_size: int = 0) -> np.ndarray:
-        """
-        Clear objects connected to the border of the mask.
-        """
-        return clear_border(mask, buffer_size=buffer_size)
+        Args:
+            mask (np.ndarray): Input segmentation mask.
+            min_hole_size (int): Minimum size of holes to be labeled as new cells.
 
-    @staticmethod
-    def separate_touching_objects(
-        mask: np.ndarray, min_distance: int = 1
-    ) -> np.ndarray:
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Updated mask and a mask of newly labeled cells.
         """
-        Attempt to separate touching objects using distance transform and watershed.
-        """
-        distance = ndi.distance_transform_edt(mask)
-        local_max = ndi.maximum_filter(distance, size=min_distance) == distance
-        markers, _ = ndi.label(local_max)
-        labels = watershed(-distance, markers, mask=mask)
-        return labels
+        # Identify holes
+        holes = np.logical_not(mask)
+        labeled_holes, _ = label(holes, return_num=True)
+        sizes = np.bincount(labeled_holes.flatten())
 
-    @staticmethod
-    def label_unsegmented_holes(mask: np.ndarray, min_hole_size: int) -> np.ndarray:
-        """
-        Label regions that are 'holes' (i.e., unsegmented areas) based on a minimum size.
-        """
-        # Invert mask to find holes
-        inverted_mask = np.logical_not(mask)
+        # Identify large holes
+        large_hole_labels = np.where(sizes >= min_hole_size)[0]
+        large_hole_labels = large_hole_labels[
+            large_hole_labels != 0
+        ]  # Exclude background
 
-        # Label connected components in the inverted mask
-        labeled_holes, num_features = ndi.label(inverted_mask)
+        # Label large holes as new cells
+        new_cell_mask = np.zeros_like(mask)
+        new_label = mask.max() + 1
+        for hole_label in large_hole_labels:
+            hole_mask = labeled_holes == hole_label
+            mask[hole_mask] = new_label
+            new_cell_mask[hole_mask] = new_label
+            new_label += 1
 
-        # Remove small holes (those smaller than min_hole_size)
-        labeled_holes = remove_small_objects(labeled_holes, min_size=min_hole_size)
-
-        # Return the updated mask where holes are given a new label
-        return labeled_holes
-
-    @staticmethod
-    def fuse_small_holes_with_neighbors(
-        mask: np.ndarray, max_hole_size: int
-    ) -> np.ndarray:
-        """
-        Fuse small holes with their neighboring regions, creating continuous regions.
-        """
-        # Invert mask to detect holes
-        inverted_mask = np.logical_not(mask)
-
-        # Fill small holes (holes with size smaller than max_hole_size)
-        fused_mask = ndi.binary_fill_holes(inverted_mask)
-        fused_mask = remove_small_objects(fused_mask, min_size=max_hole_size)
-
-        # Invert back to return the final mask with holes filled
-        return np.logical_not(fused_mask)
+        return mask, new_cell_mask
 
     @classmethod
-    def curate(cls, mask: np.ndarray, methods: List[str], **kwargs: Any) -> np.ndarray:
+    def curate(
+        cls, mask: np.ndarray, max_artifact_size: int, min_hole_size: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Apply a series of curation methods to the mask.
+        Apply curation methods to the mask.
+
+        Args:
+            mask (np.ndarray): Input segmentation mask (2D or 3D).
+            max_artifact_size (int): Maximum size of objects to be considered artifacts.
+            min_hole_size (int): Minimum size of holes to be labeled as new cells.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Curated mask and a mask of newly labeled cells.
         """
-        curated_mask = mask.copy()
-        for method in methods:
-            if hasattr(cls, method):
-                method_kwargs = kwargs.get(method, {})
-                curated_mask = getattr(cls, method)(curated_mask, **method_kwargs)
-            else:
-                raise ValueError(f"Unknown curation method: {method}")
-        return curated_mask
+        print(f"Debug: Input mask shape = {mask.shape}")
+        print(f"Debug: Input mask dtype = {mask.dtype}")
+        print(f"Debug: Input mask min = {mask.min()}, max = {mask.max()}")
+
+        if mask.ndim == 2:
+            curated_mask = cls.fuse_small_objects(mask.copy(), max_artifact_size)
+            curated_mask, new_cell_mask = cls.label_large_holes(
+                curated_mask, min_hole_size
+            )
+        elif mask.ndim == 3:
+            curated_mask = np.zeros_like(mask)
+            new_cell_mask = np.zeros_like(mask)
+            for i in range(mask.shape[0]):
+                print(f"Debug: Processing slice {i}")
+                curated_slice = cls.fuse_small_objects(
+                    mask[i].copy(), max_artifact_size
+                )
+                curated_slice, new_cell_slice = cls.label_large_holes(
+                    curated_slice, min_hole_size
+                )
+                curated_mask[i] = curated_slice
+                new_cell_mask[i] = new_cell_slice
+        else:
+            raise ValueError(f"Expected 2D or 3D mask, got shape {mask.shape}")
+
+        return curated_mask, new_cell_mask
