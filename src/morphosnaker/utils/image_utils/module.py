@@ -101,6 +101,7 @@ class ImageProcessor:
     def standardise_image(
         self, image: np.ndarray, input_dims: str = "auto"
     ) -> np.ndarray:
+        # TO DO -> REMOVE THIS FUNCTION
         """
         Standardise the image by converting it to float32 and normalising it.
 
