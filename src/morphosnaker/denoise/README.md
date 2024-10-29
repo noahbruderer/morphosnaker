@@ -17,7 +17,7 @@ To use the denoising module, follow these steps:
 ```python
 from morphosnaker import denoise
 
-denoiser = denosie.config('n2v', denoising_mode='2D',
+denoiser = denoise.config('n2v', denoising_mode='2D',
                 n2v_patch_shape=(64, 64),
                 train_steps_per_epoch=100,
                 train_epochs=10,
