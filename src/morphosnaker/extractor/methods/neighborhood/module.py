@@ -1,8 +1,7 @@
-# extractor/methods/neighborhood.py
-
 from typing import Dict, List, Set
 
 import numpy as np
+from scipy.ndimage import binary_dilation
 
 
 class NeighborhoodExtractor:
@@ -54,7 +53,6 @@ class NeighborhoodExtractor:
         Returns:
             Set[int]: A set of labels of neighboring cells.
         """
-        # dims = labeled_image.ndim
         cell_mask = labeled_image == label
         dilated = self._dilate(cell_mask)
         neighbor_mask = dilated & (labeled_image != label)
@@ -73,60 +71,26 @@ class NeighborhoodExtractor:
         """
         dims = mask.ndim
         if dims == 2:
-            return self._dilate_2d(mask)
+            structure = (
+                np.ones((3, 3))
+                if self.connectivity == 2
+                else np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+            )
         elif dims == 3:
-            return self._dilate_3d(mask)
-        return mask  # CHECK THIS
+            structure = (
+                np.ones((3, 3, 3))
+                if self.connectivity == 2
+                else np.array(
+                    [
+                        [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+                        [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
+                        [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+                    ]
+                )
+            )
+        else:
+            raise ValueError("Unsupported dimensionality for dilation")
 
-    def _dilate_2d(self, mask: np.ndarray) -> np.ndarray:
-        dilated = np.copy(mask)
-        rows, cols = mask.shape
-        for i in range(rows):
-            for j in range(cols):
-                if mask[i, j]:
-                    if self.connectivity == 1:
-                        neighbors = [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)]
-                    else:  # connectivity == 2
-                        neighbors = [
-                            (i - 1, j),
-                            (i + 1, j),
-                            (i, j - 1),
-                            (i, j + 1),
-                            (i - 1, j - 1),
-                            (i - 1, j + 1),
-                            (i + 1, j - 1),
-                            (i + 1, j + 1),
-                        ]
-                    for ni, nj in neighbors:
-                        if 0 <= ni < rows and 0 <= nj < cols:
-                            dilated[ni, nj] = True
-        return dilated
-
-    def _dilate_3d(self, mask: np.ndarray) -> np.ndarray:
-        dilated = np.copy(mask)
-        depths, rows, cols = mask.shape
-        for d in range(depths):
-            for i in range(rows):
-                for j in range(cols):
-                    if mask[d, i, j]:
-                        if self.connectivity == 1:
-                            neighbors = [
-                                (d - 1, i, j),
-                                (d + 1, i, j),
-                                (d, i - 1, j),
-                                (d, i + 1, j),
-                                (d, i, j - 1),
-                                (d, i, j + 1),
-                            ]
-                        else:  # connectivity == 2
-                            neighbors = [
-                                (d + dd, i + di, j + dj)
-                                for dd in [-1, 0, 1]
-                                for di in [-1, 0, 1]
-                                for dj in [-1, 0, 1]
-                                if not (dd == di == dj == 0)
-                            ]
-                        for nd, ni, nj in neighbors:
-                            if 0 <= nd < depths and 0 <= ni < rows and 0 <= nj < cols:
-                                dilated[nd, ni, nj] = True
-        return dilated
+        # Perform dilation using scipy's efficient binary_dilation
+        dilated_mask = binary_dilation(mask, structure=structure)
+        return dilated_mask
