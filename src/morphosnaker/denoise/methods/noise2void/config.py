@@ -66,6 +66,7 @@ class Noise2VoidConfig(DenoiseConfigBase):
     tile_overlap: int = 16
     tile_shape: Tuple[int, int] = (64, 64)
     input_dims: str = "YX"
+    image_name: str = "image"
 
     def __post_init__(self):
         self.fig_dir = os.path.join(self.result_dir, self.fig_dir)
