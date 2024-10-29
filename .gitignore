@@ -28,3 +28,4 @@ notebooks/*
 */.DS_Store?
 */._*
 src/morphosnaker/denoise/methods/noise2void/__pycache__/*
+repopack-output.txt
