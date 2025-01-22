@@ -2,6 +2,7 @@
 import os
 from typing import Any, Optional
 
+import numpy as np
 from cellpose import models
 
 from ..base import SegmentationModuleBase
@@ -17,14 +18,19 @@ class CellposeModel(SegmentationModuleBase):
     def _initialize_model(self):
         """Initialize the model based on the configuration."""
         if self.config.model_type in ["cyto", "nuclei", "cyto2", "cyto3"]:
-            self.model = models.CellposeModel(model_type=self.config.model_type)
+            self.model = models.CellposeModel(
+                model_type=self.config.model_type, gpu=self.config.GPU
+            )
         else:
             # For custom model types, we'll expect load_model to be called
             self.model = None
 
     def load_model(self, model_path: str) -> None:
         try:
-            self.model = models.CellposeModel(pretrained_model=model_path)
+            self.model = models.CellposeModel(
+                pretrained_model=model_path,
+                gpu=self.config.GPU,  # Use the GPU config parameter
+            )
             self.config.update_from_model(self.model)
             model_name = os.path.basename(model_path)
             model_name = os.path.splitext(model_name)[0]
@@ -45,6 +51,57 @@ class CellposeModel(SegmentationModuleBase):
             do_3D=self.config.do_3D,
         )
         return masks
+
+    def predict_for_training(self, image: Any, **kwargs: Any) -> Dict[str, np.ndarray]:
+        """
+        Predict segmentation with additional outputs for training visualization.
+        Similar to Cellpose GUI output format.
+
+        Args:
+            image: Input image to segment
+            **kwargs: Additional keyword arguments passed to model.eval
+
+        Returns:
+            Dict containing:
+                - 'masks': Binary segmentation masks
+                - 'flows': Flow fields/probability maps
+                - 'styles': Style vectors
+                - 'seg': Combined array with:
+                    - chan0: Segmentation mask
+                    - chan1: Cell probability
+                    - chan2: Flow field X
+                    - chan3: Flow field Y
+        """
+        self._ensure_model()
+        assert self.model is not None
+
+        # Get predictions from model
+        masks, flows, styles = self.model.eval(
+            image,
+            channels=self.config.channels,
+            diameter=self.config.diameter,
+            flow_threshold=self.config.flow_threshold,
+            cellprob_threshold=self.config.cellprob_threshold,
+            do_3D=self.config.do_3D,
+        )
+
+        cellprob = flows[2]  # Cellpose stores probability in flows[2]
+        dP = flows[0]  # X flow field
+        dY = flows[1]  # Y flow field
+
+        # Create combined seg array (similar to GUI seg.npy)
+        # Shape will be [4, H, W] for 2D or [4, Z, H, W] for 3D
+        if self.config.do_3D:
+            seg = np.stack([masks, cellprob, dP, dY], axis=0)
+        else:
+            seg = np.stack([masks, cellprob, dP, dY], axis=0)
+
+        return {
+            "masks": masks,  # Binary segmentation masks
+            "flows": flows,  # Raw flow outputs
+            "styles": styles,  # Style vectors
+            "seg": seg,  # Combined array similar to GUI output
+        }
 
     def _ensure_model(self):
         if self.model is None:

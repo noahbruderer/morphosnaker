@@ -17,6 +17,7 @@ class CellposeConfig(SegmentationConfigBase):
     do_3D: bool = False
     pretrained_model: str = field(default="cyto3", init=False)
     segmentation_mode: str = "2D"
+    GPU: bool = False
 
     def __post_init__(self):
         super().validate()
