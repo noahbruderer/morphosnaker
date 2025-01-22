@@ -11,6 +11,7 @@ class SegmentationConfigBase:
     segmentation_mode: str
     trained_model_name: str = "my_segmentation_model"
     result_dir: str = "./segmentation_results"
+    GPU: bool = False
 
     def validate(self):
         if self.segmentation_mode not in ["2D", "3D"]:

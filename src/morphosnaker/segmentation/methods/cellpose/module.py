@@ -21,6 +21,9 @@ class CellposeModule(SegmentationModuleBase):
     def predict(self, image: np.ndarray, **kwargs: Any) -> Any:
         return self.model.predict(image, **kwargs)
 
+    def predict_for_training(self, image: np.ndarray, **kwargs: Any) -> Any:
+        return self.model.predict_for_training(image, **kwargs)
+
     def load_model(self, path: str) -> None:
         self.model.load_model(path)
 
