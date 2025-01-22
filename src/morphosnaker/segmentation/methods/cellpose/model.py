@@ -1,6 +1,6 @@
 # src/morphosnaker/segmentation/methods/cellpose/model.py
 import os
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 from cellpose import models
