@@ -288,8 +288,10 @@ class Noise2VoidModel:
             title_image_1="Raw Image",
             title_image_2="Denoised Image",
             main_title="Raw vs Denoised Image",
-            metadata_text=f"Model used: {self.config.trained_model_name}\n\
-                Image: {self.config.image_name}",
+            metadata_text=(
+                f"Model used: {self.config.trained_model_name}\n                Image:"
+                f" {self.config.image_name}"
+            ),
             x_unit="pixels",
             y_unit="pixels",
         )

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "morphosnaker"
-version = "0.0.1"
+version = "0.0.2"
 description = "Segment, extract, analyse"
 authors = ["Tatan47 <noah.bruderer@gmail.com>"]
 license = "MIT"
@@ -42,7 +42,7 @@ torchvision = "^0.19.1"
 torchaudio = "^2.4.1"
 torch-geometric = "^2.6.1"
 bioio = "^1.1.0"
-scikit-image = "^0.19.0"
+scikit-image = "^0.22.0"
 bioio-tifffile = "^1.0.0"
 leidenalg = "^0.10.2"
 umap-learn = "^0.5.7"
